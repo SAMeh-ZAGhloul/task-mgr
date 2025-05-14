@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ action }} Task - AI Coding Task Manager{% endblock %}
+
+{% block content %}
+<div class="container mx-auto max-w-2xl">
+    <header class="mb-8 text-center">
+        <h1 class="text-4xl font-bold text-slate-700">{{ action }} Task</h1>
+        <p class="text-slate-500">AI Coding Task Manager</p>
+    </header>
+
+    <div class="bg-white p-6 rounded-xl shadow-lg">
+        <form method="post" class="space-y-4">
+            {% csrf_token %}
+            {% for field in form %}
+            <div>
+                <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-slate-600 mb-1">
+                    {{ field.label }}
+                </label>
+                {{ field }}
+                {% if field.errors %}
+                <div class="mt-1">
+                    {% for error in field.errors %}
+                    <p class="text-red-500 text-xs">{{ error }}</p>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+
+            <div class="flex justify-end space-x-3 pt-4">
+                <a href="{% url 'task_list' %}" class="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition duration-150">
+                    Cancel
+                </a>
+                <button type="submit" class="px-6 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition duration-150">
+                    {{ action }} Task
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

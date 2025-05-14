@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}AI Coding Task Manager{% endblock %}
+
+{% block content %}
+<div class="container mx-auto max-w-6xl">
+    <header class="mb-8 text-center">
+        <h1 class="text-4xl font-bold text-slate-700">AI Coding Task Manager</h1>
+        <p class="text-slate-500">Django Frontend - Organize your AI-assisted development projects.</p>
+    </header>
+
+    <div class="mb-6 text-center">
+        <a href="{% url 'task_create' %}" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-150 ease-in-out inline-block">
+            Add New Task
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Todo Column -->
+        <div class="bg-white p-5 rounded-xl shadow-lg task-column">
+            <h2 class="text-xl font-semibold text-slate-700 mb-4 border-b pb-2">To Do</h2>
+            <div class="space-y-4 task-list max-h-[60vh] overflow-y-auto pr-2">
+                {% for task in todo_tasks %}
+                    {% include 'tasks/task_card.html' with task=task %}
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- In Progress Column -->
+        <div class="bg-white p-5 rounded-xl shadow-lg task-column">
+            <h2 class="text-xl font-semibold text-slate-700 mb-4 border-b pb-2">In Progress</h2>
+            <div class="space-y-4 task-list max-h-[60vh] overflow-y-auto pr-2">
+                {% for task in inprogress_tasks %}
+                    {% include 'tasks/task_card.html' with task=task %}
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Completed Column -->
+        <div class="bg-white p-5 rounded-xl shadow-lg task-column">
+            <h2 class="text-xl font-semibold text-slate-700 mb-4 border-b pb-2">Completed</h2>
+            <div class="space-y-4 task-list max-h-[60vh] overflow-y-auto pr-2">
+                {% for task in completed_tasks %}
+                    {% include 'tasks/task_card.html' with task=task %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
