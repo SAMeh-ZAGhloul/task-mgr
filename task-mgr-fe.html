@@ -1,3 +1,15 @@
+<!--
+Task Manager Frontend
+-------------------
+A modern, responsive web interface for managing coding tasks with AI integration.
+Features:
+- Kanban board layout with drag-and-drop functionality
+- Task creation, editing, and deletion
+- Priority levels and due dates
+- AI instructions field for each task
+- Network-enabled: works with backend server over HTTP
+-->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -110,78 +122,74 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div class="bg-white p-5 rounded-xl shadow-lg task-column">
                 <h2 class="text-xl font-semibold text-slate-700 mb-4 border-b pb-2">To Do</h2>
-                <div id="todoTasks" class="space-y-4 task-list max-h-[60vh] overflow-y-auto pr-2">
+                <div id="todoTasks" class="space-y-4 task-list max-h-[60vh] overflow-y-auto pr-2" data-status="todo">
                     </div>
             </div>
 
             <div class="bg-white p-5 rounded-xl shadow-lg task-column">
                 <h2 class="text-xl font-semibold text-slate-700 mb-4 border-b pb-2">In Progress</h2>
-                <div id="inprogressTasks" class="space-y-4 task-list max-h-[60vh] overflow-y-auto pr-2">
+                <div id="inprogressTasks" class="space-y-4 task-list max-h-[60vh] overflow-y-auto pr-2" data-status="inprogress">
                     </div>
             </div>
 
             <div class="bg-white p-5 rounded-xl shadow-lg task-column">
                 <h2 class="text-xl font-semibold text-slate-700 mb-4 border-b pb-2">Completed</h2>
-                <div id="completedTasks" class="space-y-4 task-list max-h-[60vh] overflow-y-auto pr-2">
+                <div id="completedTasks" class="space-y-4 task-list max-h-[60vh] overflow-y-auto pr-2" data-status="completed">
                     </div>
             </div>
         </div>
     </div>
 
     <script>
-        // DOM Elements
         const taskModal = document.getElementById('taskModal');
         const openModalButton = document.getElementById('openModalButton');
         const closeModalButton = document.getElementById('closeModalButton');
-        const cancelModalButton = document.getElementById('cancelModalButton');
+        const cancelModalButton = document.getElementById('cancelTaskButton');
         const taskForm = document.getElementById('taskForm');
-        const modalTitle = document.getElementById('modalTitle');
-        const saveTaskButton = document.getElementById('saveTaskButton');
-        
         const todoTasksContainer = document.getElementById('todoTasks');
         const inprogressTasksContainer = document.getElementById('inprogressTasks');
         const completedTasksContainer = document.getElementById('completedTasks');
-
-        // Task data storage
+        const modalTitle = document.getElementById('modalTitle');
+        const saveTaskButton = document.getElementById('saveTaskButton');
+        
         let tasks = [];
-        const API_URL = 'http://localhost:3000';
+        let editingTaskId = null;
 
-        // Load tasks from server
-        async function loadTasks() {
+        // Fetch tasks from the backend
+        async function fetchTasks() {
             try {
-                const response = await fetch(`${API_URL}/tasks`);
+                const response = await fetch('http://192.168.51.124:3000/tasks');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch tasks');
+                }
                 tasks = await response.json();
                 renderTasks();
             } catch (error) {
-                console.error('Error loading tasks:', error);
-                // Fallback to localStorage if server is unavailable
-                tasks = JSON.parse(localStorage.getItem('tasks')) || [];
-                renderTasks();
+                console.error('Error fetching tasks:', error);
             }
         }
 
-        // Save tasks to server
+        // Save tasks to backend
         async function saveTasks() {
             try {
-                await fetch(`${API_URL}/tasks`, {
+                const response = await fetch('http://192.168.51.124:3000/tasks', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify(tasks)
                 });
-                // Backup to localStorage
-                localStorage.setItem('tasks', JSON.stringify(tasks));
+                if (!response.ok) {
+                    throw new Error('Failed to save tasks');
+                }
             } catch (error) {
                 console.error('Error saving tasks:', error);
-                // Fallback to localStorage if server is unavailable
-                localStorage.setItem('tasks', JSON.stringify(tasks));
             }
         }
 
-        // Initialize when the page loads
+        // Initial render of tasks on page load
         document.addEventListener('DOMContentLoaded', () => {
-            loadTasks();
+            fetchTasks();
         });
 
         // --- Modal Handling ---
@@ -237,6 +245,7 @@
 
             tasks.forEach(task => {
                 const taskCard = createTaskCard(task);
+                addDragListeners(taskCard);
                 if (task.status === 'todo') {
                     todoTasksContainer.appendChild(taskCard);
                 } else if (task.status === 'inprogress') {
@@ -340,36 +349,73 @@
 
         taskForm.addEventListener('submit', function(event) {
             event.preventDefault();
-            const id = document.getElementById('taskId').value;
-            const name = document.getElementById('taskName').value;
-            const description = document.getElementById('taskDescription').value;
-            const aiInstructions = document.getElementById('taskAIInstructions').value;
-            const priority = document.getElementById('taskPriority').value;
-            const assignedTo = document.getElementById('taskAssignedTo').value;
-            const dueDate = document.getElementById('taskDueDate').value;
+            const taskId = document.getElementById('taskId').value;
+            const taskData = {
+                id: taskId || `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                name: document.getElementById('taskName').value,
+                description: document.getElementById('taskDescription').value,
+                aiInstructions: document.getElementById('taskAIInstructions').value,
+                priority: document.getElementById('taskPriority').value,
+                assignedTo: document.getElementById('taskAssignedTo').value,
+                dueDate: document.getElementById('taskDueDate').value,
+                status: 'todo'
+            };
 
-            if (editingTaskId) { // If editingTaskId is set, we are updating an existing task
-                const taskIndex = tasks.findIndex(t => t.id === editingTaskId);
-                if (taskIndex > -1) {
-                    tasks[taskIndex] = { ...tasks[taskIndex], name, description, aiInstructions, priority, assignedTo, dueDate };
+            if (editingTaskId) {
+                // Update existing task
+                const index = tasks.findIndex(t => t.id === editingTaskId);
+                if (index !== -1) {
+                    taskData.status = tasks[index].status; // Preserve existing status
+                    tasks[index] = taskData;
                 }
-            } else { // Adding a new task
-                const newTask = {
-                    id: 'task-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9), // More unique ID
-                    name,
-                    description,
-                    aiInstructions,
-                    priority,
-                    assignedTo,
-                    dueDate,
-                    status: 'todo' // New tasks start in 'To Do'
-                };
-                tasks.push(newTask);
+            } else {
+                // Add new task
+                tasks.push(taskData);
             }
+
+            // Save to backend and update UI
+            saveTasks().then(() => {
+                renderTasks();
+                closeTaskModal();
+            });
+        });
+
+        // Add drag and drop functionality
+        function addDragListeners(taskCard) {
+            taskCard.setAttribute('draggable', true);
             
-            saveTasks();
-            renderTasks();
-            closeTaskModal();
+            taskCard.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', taskCard.getAttribute('data-id'));
+                taskCard.classList.add('opacity-50');
+            });
+
+            taskCard.addEventListener('dragend', () => {
+                taskCard.classList.remove('opacity-50');
+            });
+        }
+
+        const columns = document.querySelectorAll('.task-list');
+        columns.forEach(column => {
+            column.addEventListener('dragover', (e) => {
+                e.preventDefault();
+            });
+
+            column.addEventListener('drop', (e) => {
+                e.preventDefault();
+                const taskId = e.dataTransfer.getData('text/plain');
+                const taskCard = document.querySelector(`[data-id="${taskId}"]`);
+                if (!taskCard) return;
+
+                const newStatus = column.getAttribute('data-status');
+                const task = tasks.find(t => t.id === taskId);
+                if (task) {
+                    task.status = newStatus;
+                    // Save to backend and update UI
+                    saveTasks().then(() => {
+                        renderTasks();
+                    });
+                }
+            });
         });
 
         function deleteTask(taskId) {
