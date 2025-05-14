@@ -233,3 +233,105 @@ Tasks are stored in `task-mgr-DB.json` with the following structure:
 ]
 ```
 
+## Testing with Postman
+
+You can test the Task Manager APIs using the Postman extension in VS Code or the Postman desktop application.
+
+### Setup in VS Code
+
+1. Install the "Postman" extension from the VS Code marketplace
+2. Create a new collection for Task Manager
+3. Set the base URL: `http://localhost:3000` or `http://<your-ip-address>:3000`
+
+### Testing Endpoints
+
+1. **GET /tasks**
+   ```http
+   GET http://localhost:3000/tasks
+   ```
+   - No request body needed
+   - Returns: Array of task objects
+
+2. **POST /tasks**
+   ```http
+   POST http://localhost:3000/tasks
+   Content-Type: application/json
+
+   [
+     {
+       "id": "task-1",
+       "name": "Example Task",
+       "description": "Task description",
+       "aiInstructions": "AI instructions here",
+       "priority": "Medium",
+       "assignedTo": "AI",
+       "dueDate": "2025-05-14",
+       "status": "todo"
+     }
+   ]
+   ```
+
+### Example Requests
+
+1. **Create/Update Tasks**
+   ```http
+   POST http://localhost:3000/tasks
+   Content-Type: application/json
+
+   [
+     {
+       "id": "task-1",
+       "name": "Implement Login",
+       "description": "Add user authentication",
+       "priority": "High",
+       "assignedTo": "Developer",
+       "dueDate": "2025-05-20",
+       "status": "todo"
+     },
+     {
+       "id": "task-2",
+       "name": "Design Dashboard",
+       "description": "Create UI mockups",
+       "priority": "Medium",
+       "assignedTo": "Designer",
+       "dueDate": "2025-05-25",
+       "status": "inprogress"
+     }
+   ]
+   ```
+
+2. **Retrieve Tasks**
+   - Send GET request to `/tasks`
+   - Verify the response matches the Task Schema
+   - Check status codes and response times
+
+### Testing Tips
+
+1. **Environment Variables**
+   - Create environments for different settings (local, network)
+   - Set variables like:
+     ```json
+     {
+       "baseUrl": "http://localhost:3000",
+       "networkUrl": "http://<your-ip-address>:3000"
+     }
+     ```
+
+2. **Response Validation**
+   - Check response status (200 OK)
+   - Validate JSON schema
+   - Verify data persistence by:
+     1. GET tasks
+     2. POST new tasks
+     3. GET tasks again to confirm changes
+
+3. **Error Testing**
+   - Try invalid task properties
+   - Test missing required fields
+   - Verify error responses
+
+4. **Collection Runner**
+   - Create test sequences
+   - Run multiple requests in order
+   - Automate testing workflow
+
