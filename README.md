@@ -335,3 +335,155 @@ You can test the Task Manager APIs using the Postman extension in VS Code or the
    - Run multiple requests in order
    - Automate testing workflow
 
+## Testing with cURL
+
+You can test the Task Manager APIs directly from the terminal using cURL commands.
+
+### Basic Tests
+
+1. **Get All Tasks**
+   ```bash
+   curl -X GET http://localhost:3000/tasks
+   ```
+
+2. **Create/Update Tasks**
+   ```bash
+   curl -X POST http://localhost:3000/tasks \
+     -H "Content-Type: application/json" \
+     -d '[
+       {
+         "id": "task-1",
+         "name": "Test Task",
+         "description": "Testing with curl",
+         "priority": "Medium",
+         "assignedTo": "Tester",
+         "dueDate": "2025-05-14",
+         "status": "todo"
+       }
+     ]'
+   ```
+
+### Shell Script for Automated Testing
+
+Create a file `test_api.sh`:
+```bash
+#!/bin/bash
+
+# Configuration
+BASE_URL="http://localhost:3000"
+BOLD="\033[1m"
+GREEN="\033[0;32m"
+RED="\033[0;31m"
+NC="\033[0m" # No Color
+
+echo "${BOLD}Running API Tests${NC}"
+
+# Test 1: Get all tasks (should return empty array or existing tasks)
+echo "\n${BOLD}Test 1: GET /tasks${NC}"
+GET_RESPONSE=$(curl -s -w "\n%{http_code}" $BASE_URL/tasks)
+HTTP_CODE=$(echo "$GET_RESPONSE" | tail -n1)
+RESPONSE_BODY=$(echo "$GET_RESPONSE" | sed '$d')
+
+if [ $HTTP_CODE -eq 200 ]; then
+    echo "${GREEN}✓ GET /tasks successful${NC}"
+    echo "Response: $RESPONSE_BODY"
+else
+    echo "${RED}✗ GET /tasks failed with code $HTTP_CODE${NC}"
+fi
+
+# Test 2: Create new task
+echo "\n${BOLD}Test 2: POST /tasks${NC}"
+POST_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+  -H "Content-Type: application/json" \
+  -d '[{
+    "id": "test-'"$(date +%s)"'",
+    "name": "Curl Test Task",
+    "description": "Created by curl test script",
+    "priority": "Medium",
+    "assignedTo": "Tester",
+    "dueDate": "2025-05-14",
+    "status": "todo"
+  }]' \
+  $BASE_URL/tasks)
+
+HTTP_CODE=$(echo "$POST_RESPONSE" | tail -n1)
+RESPONSE_BODY=$(echo "$POST_RESPONSE" | sed '$d')
+
+if [ $HTTP_CODE -eq 200 ]; then
+    echo "${GREEN}✓ POST /tasks successful${NC}"
+    echo "Response: $RESPONSE_BODY"
+else
+    echo "${RED}✗ POST /tasks failed with code $HTTP_CODE${NC}"
+fi
+
+# Test 3: Verify task was created
+echo "\n${BOLD}Test 3: Verify task creation${NC}"
+GET_RESPONSE=$(curl -s -w "\n%{http_code}" $BASE_URL/tasks)
+HTTP_CODE=$(echo "$GET_RESPONSE" | tail -n1)
+RESPONSE_BODY=$(echo "$GET_RESPONSE" | sed '$d')
+
+if [ $HTTP_CODE -eq 200 ] && echo "$RESPONSE_BODY" | grep -q "Curl Test Task"; then
+    echo "${GREEN}✓ Task verification successful${NC}"
+else
+    echo "${RED}✗ Task verification failed${NC}"
+fi
+```
+
+### Running the Tests
+
+1. Make the script executable and run it:
+   ```bash
+   chmod +x test_api.sh
+   ./test_api.sh
+   ```
+
+2. Expected output:
+   ```
+   Running API Tests
+
+   Test 1: GET /tasks
+   ✓ GET /tasks successful
+   Response: [...]
+
+   Test 2: POST /tasks
+   ✓ POST /tasks successful
+   Response: {"status":"success"}
+
+   Test 3: Verify task creation
+   ✓ Task verification successful
+   ```
+
+### Error Testing with cURL
+
+1. **Test Missing Required Fields**
+   ```bash
+   curl -X POST http://localhost:3000/tasks \
+     -H "Content-Type: application/json" \
+     -d '[{"description": "Missing required fields"}]'
+   ```
+
+2. **Test Invalid Priority**
+   ```bash
+   curl -X POST http://localhost:3000/tasks \
+     -H "Content-Type: application/json" \
+     -d '[{
+       "id": "task-error",
+       "name": "Test Task",
+       "priority": "INVALID",
+       "status": "todo"
+     }]'
+   ```
+
+3. **Test Invalid Date Format**
+   ```bash
+   curl -X POST http://localhost:3000/tasks \
+     -H "Content-Type: application/json" \
+     -d '[{
+       "id": "task-error",
+       "name": "Test Task",
+       "priority": "Medium",
+       "status": "todo",
+       "dueDate": "invalid-date"
+     }]'
+   ```
+
