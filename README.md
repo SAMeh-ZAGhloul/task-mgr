@@ -342,25 +342,120 @@ You can test the Task Manager APIs directly from the terminal using cURL command
 ### Basic Tests
 
 1. **Get All Tasks**
-   ```bash
-   curl -X GET http://localhost:3000/tasks
+   ```zsh
+   # Simple GET request
+   curl http://localhost:3000/tasks
+
+   # GET request with formatted JSON output
+   curl http://localhost:3000/tasks | python3 -m json.tool
+
+   # GET request with headers
+   curl -v http://localhost:3000/tasks
    ```
 
 2. **Create/Update Tasks**
-   ```bash
+   ```zsh
+   # Create a single task
+   curl -X POST http://localhost:3000/tasks \
+     -H "Content-Type: application/json" \
+     -d '[{
+       "id": "task-1",
+       "name": "Test Task",
+       "description": "Testing with curl",
+       "priority": "Medium",
+       "assignedTo": "Tester",
+       "dueDate": "2025-05-14",
+       "status": "todo"
+     }]'
+
+   # Create multiple tasks
    curl -X POST http://localhost:3000/tasks \
      -H "Content-Type: application/json" \
      -d '[
        {
          "id": "task-1",
-         "name": "Test Task",
-         "description": "Testing with curl",
-         "priority": "Medium",
-         "assignedTo": "Tester",
-         "dueDate": "2025-05-14",
+         "name": "First Task",
+         "priority": "High",
          "status": "todo"
+       },
+       {
+         "id": "task-2",
+         "name": "Second Task",
+         "priority": "Medium",
+         "status": "inprogress"
        }
      ]'
+
+   # Update tasks with pretty-printed response
+   curl -X POST http://localhost:3000/tasks \
+     -H "Content-Type: application/json" \
+     -d '[{"id": "task-1", "name": "Updated Task", "status": "completed"}]' \
+     | python3 -m json.tool
+   ```
+
+### Advanced curl Commands
+
+1. **Save Response to File**
+   ```zsh
+   # Save tasks to JSON file
+   curl http://localhost:3000/tasks > tasks_backup.json
+
+   # Save with timestamp
+   curl http://localhost:3000/tasks > "tasks_$(date +%Y%m%d_%H%M%S).json"
+   ```
+
+2. **Load Tasks from File**
+   ```zsh
+   # Update tasks from JSON file
+   curl -X POST http://localhost:3000/tasks \
+     -H "Content-Type: application/json" \
+     -d @tasks_backup.json
+   ```
+
+3. **Test Network Access**
+   ```zsh
+   # Get your IP address
+   IP=$(ipconfig getifaddr en0)
+   
+   # Test network access
+   curl http://$IP:3000/tasks
+   ```
+
+4. **Debug Requests**
+   ```zsh
+   # Show request headers
+   curl -v http://localhost:3000/tasks
+
+   # Show timing information
+   curl -w "\nTime: %{time_total}s\n" http://localhost:3000/tasks
+
+   # Test CORS headers
+   curl -H "Origin: http://localhost:8000" \
+     -v http://localhost:3000/tasks
+   ```
+
+5. **Error Testing**
+   ```zsh
+   # Test invalid content type
+   curl -X POST http://localhost:3000/tasks \
+     -H "Content-Type: text/plain" \
+     -d "invalid data"
+
+   # Test missing required fields
+   curl -X POST http://localhost:3000/tasks \
+     -H "Content-Type: application/json" \
+     -d '[{"description": "Missing required fields"}]'
+
+   # Test invalid JSON
+   curl -X POST http://localhost:3000/tasks \
+     -H "Content-Type: application/json" \
+     -d '{invalid json}'
+   ```
+
+6. **One-liner Task Creation**
+   ```zsh
+   # Quick task creation
+   curl -X POST http://localhost:3000/tasks -H "Content-Type: application/json" -d '[{"id":"quick-task-'$(date +%s)'","name":"Quick Task","status":"todo"}]'
    ```
 
 ### Shell Script for Automated Testing
@@ -485,5 +580,65 @@ fi
        "status": "todo",
        "dueDate": "invalid-date"
      }]'
+   ```
+
+### Running Tests on macOS/zsh
+
+1. **Make the test script executable**
+   ```zsh
+   chmod +x test_api.sh
+   ```
+
+2. **Start the Flask backend in one terminal**
+   ```zsh
+   python3 task-mgr-BE.py
+   ```
+
+3. **Run the test script in another terminal**
+   ```zsh
+   ./test_api.sh
+   ```
+
+The script will output colored results for each test:
+- ✓ Green checkmarks for successful tests
+- ✗ Red X's for failed tests
+
+### Test Script Features
+
+- Uses zsh-compatible syntax
+- Colored output for better visibility
+- HTTP response code validation
+- Response body verification
+- Automatic test task generation with timestamp-based IDs
+- Test sequence with verification steps
+
+### Common Issues on macOS
+
+1. **Script Permission Denied**
+   ```zsh
+   # Fix with
+   chmod +x test_api.sh
+   ```
+
+2. **Python Version**
+   ```zsh
+   # Check Python version
+   python3 --version
+   
+   # If needed, install Python 3
+   brew install python3
+   ```
+
+3. **Running Multiple Services**
+   - Use separate terminal windows/tabs for:
+     - Flask backend (port 3000)
+     - Django frontend (port 8000)
+     - Test script
+
+4. **Finding Your IP Address**
+   ```zsh
+   # For network testing
+   ipconfig getifaddr en0  # For Wi-Fi
+   ipconfig getifaddr en1  # For Ethernet
    ```
 
