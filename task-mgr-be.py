@@ -11,11 +11,46 @@ all interfaces (0.0.0.0) on port 3000.
 
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
+from flasgger import Swagger, swag_from
 import json
 import os
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes to allow cross-origin requests
+
+# Configure Swagger
+swagger_config = {
+    "headers": [],
+    "specs": [
+        {
+            "endpoint": 'apispec',
+            "route": '/apispec.json',
+            "rule_filter": lambda rule: True,  # all in
+            "model_filter": lambda tag: True,  # all in
+        }
+    ],
+    "static_url_path": "/flasgger_static",
+    "swagger_ui": True,
+    "specs_route": "/docs"
+}
+
+swagger_template = {
+    "info": {
+        "title": "Task Manager API",
+        "description": "API for managing tasks in the AI Coding Task Manager",
+        "contact": {
+            "responsibleDeveloper": "Developer",
+            "email": "developer@example.com"
+        },
+        "version": "1.0"
+    },
+    "schemes": [
+        "http",
+        "https"
+    ]
+}
+
+swagger = Swagger(app, config=swagger_config, template=swagger_template)
 
 # Data file path for persistent storage
 DATA_FILE = 'task-mgr-db.json'
@@ -45,22 +80,130 @@ def serve_frontend():
     return send_file('task-mgr-FE.html')
 
 @app.route('/tasks', methods=['GET'])
+@swag_from({
+    'responses': {
+        200: {
+            'description': 'List of tasks',
+            'schema': {
+                'type': 'array',
+                'items': {
+                    'type': 'object',
+                    'properties': {
+                        'id': {'type': 'string', 'description': 'Unique task identifier'},
+                        'name': {'type': 'string', 'description': 'Task name'},
+                        'description': {'type': 'string', 'description': 'Task description'},
+                        'aiInstructions': {'type': 'string', 'description': 'AI-specific instructions'},
+                        'priority': {'type': 'string', 'enum': ['Low', 'Medium', 'High'], 'description': 'Task priority'},
+                        'assignedTo': {'type': 'string', 'description': 'Task assignee'},
+                        'dueDate': {'type': 'string', 'format': 'date', 'description': 'Task due date'},
+                        'status': {'type': 'string', 'enum': ['todo', 'inprogress', 'completed'], 'description': 'Task status'}
+                    }
+                }
+            }
+        }
+    }
+})
 def get_tasks():
     """
-    GET endpoint to retrieve all tasks
-    Returns:
-        JSON response containing list of all tasks
+    Get all tasks
+    ---
+    tags:
+      - tasks
+    responses:
+      200:
+        description: List of all tasks
     """
     return jsonify(load_tasks())
 
 @app.route('/tasks', methods=['POST'])
+@swag_from({
+    'parameters': [{
+        'in': 'body',
+        'name': 'body',
+        'required': True,
+        'schema': {
+            'type': 'array',
+            'items': {
+                'type': 'object',
+                'properties': {
+                    'id': {'type': 'string', 'description': 'Unique task identifier'},
+                    'name': {'type': 'string', 'description': 'Task name'},
+                    'description': {'type': 'string', 'description': 'Task description'},
+                    'aiInstructions': {'type': 'string', 'description': 'AI-specific instructions'},
+                    'priority': {'type': 'string', 'enum': ['Low', 'Medium', 'High'], 'description': 'Task priority'},
+                    'assignedTo': {'type': 'string', 'description': 'Task assignee'},
+                    'dueDate': {'type': 'string', 'format': 'date', 'description': 'Task due date'},
+                    'status': {'type': 'string', 'enum': ['todo', 'inprogress', 'completed'], 'description': 'Task status'}
+                },
+                'required': ['id', 'name', 'status']
+            }
+        }
+    }],
+    'responses': {
+        200: {
+            'description': 'Tasks updated successfully',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'status': {'type': 'string', 'example': 'success'}
+                }
+            }
+        }
+    }
+})
 def update_tasks():
     """
-    POST endpoint to update tasks
-    Expects:
-        JSON body containing the complete list of tasks
-    Returns:
-        JSON response indicating success
+    Update tasks
+    ---
+    tags:
+      - tasks
+    parameters:
+      - in: body
+        name: tasks
+        description: List of tasks to update
+        required: true
+        schema:
+          type: array
+          items:
+            $ref: '#/definitions/Task'
+    responses:
+      200:
+        description: Tasks updated successfully
+    definitions:
+      Task:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Unique task identifier
+          name:
+            type: string
+            description: Task name
+          description:
+            type: string
+            description: Task description
+          aiInstructions:
+            type: string
+            description: AI-specific instructions
+          priority:
+            type: string
+            enum: [Low, Medium, High]
+            description: Task priority
+          assignedTo:
+            type: string
+            description: Task assignee
+          dueDate:
+            type: string
+            format: date
+            description: Task due date
+          status:
+            type: string
+            enum: [todo, inprogress, completed]
+            description: Task status
+        required:
+          - id
+          - name
+          - status
     """
     tasks = request.json
     save_tasks(tasks)

@@ -151,6 +151,54 @@ To implement a new frontend:
 - `GET /tasks` - Retrieves all tasks
 - `POST /tasks` - Updates the task list
 
+## API Documentation
+
+The backend server includes Swagger/OpenAPI documentation using Flasgger. You can access the interactive API documentation at:
+- Local: `http://localhost:3000/docs`
+- Network: `http://<your-ip-address>:3000/docs`
+
+The Swagger UI provides:
+- Interactive API testing
+- Detailed endpoint documentation
+- Request/response schemas
+- Data validation rules
+- Example requests and responses
+
+### Available Endpoints
+
+1. `GET /` 
+   - Serves the static HTML frontend interface
+   - Content-Type: text/html
+
+2. `GET /tasks`
+   - Retrieves all tasks
+   - Response: Array of task objects
+   - Schema validation for response data
+
+3. `POST /tasks`
+   - Updates the task list
+   - Request Body: Array of task objects
+   - Required fields: id, name, status
+   - Validates task properties:
+     - priority: [Low, Medium, High]
+     - status: [todo, inprogress, completed]
+     - dueDate: YYYY-MM-DD format
+
+### Task Schema
+
+```json
+{
+  "id": "string",         // Unique task identifier
+  "name": "string",       // Task name
+  "description": "string", // Optional task description
+  "aiInstructions": "string", // Optional AI-specific instructions
+  "priority": "enum",     // Low, Medium, High
+  "assignedTo": "string", // Task assignee
+  "dueDate": "date",     // YYYY-MM-DD format
+  "status": "enum"       // todo, inprogress, completed
+}
+```
+
 ## Frontend Features
 
 1. Task Management
